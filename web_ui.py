@@ -122,7 +122,7 @@ def truncate_to_words(text, max_words=80):
 def main():
     """Main Streamlit app."""
     st.set_page_config(
-        page_title="RagMetrics - Self Corrected Chatbot",
+        page_title="RagMetrics - Self Correcting Chatbot",
         page_icon="💬",
         layout="wide"
     )
@@ -146,7 +146,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    st.title("RagMetrics - Self Corrected Chatbot")
+    st.title("RagMetrics - Self Correcting Chatbot")
     
     # Get settings instance
     try:
