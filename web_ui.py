@@ -5,15 +5,13 @@ import logging
 import time
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
-from config.settings import Settings
+from config.settings import Settings, get_settings
 
 # Set logging to WARNING level
 setup_logging(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Initialize session state
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
 if 'chat_engine' not in st.session_state:
     st.session_state.chat_engine = None
 if 'conversation_history' not in st.session_state:
@@ -122,7 +120,7 @@ def truncate_to_words(text, max_words=80):
 def main():
     """Main Streamlit app."""
     st.set_page_config(
-        page_title="RagMetrics - Self Corrected Chatbot",
+        page_title="RagMetrics - Self Correcting Chatbot",
         page_icon="💬",
         layout="wide"
     )
@@ -146,29 +144,15 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    st.title("RagMetrics - Self Corrected Chatbot")
+    st.title("RagMetrics - Self Correcting Chatbot")
     
-    # Get settings instance
+    # Get settings instance (lazy initialization - only when needed)
     try:
-        settings = Settings()
+        settings = get_settings()
     except Exception as e:
         st.error(f"Error loading configuration: {str(e)}")
+        st.error("Please ensure all required environment variables are set in Streamlit Cloud Secrets.")
         st.stop()
-    
-    # Password authentication - ALWAYS required
-    if not st.session_state.authenticated:
-        password_input = st.text_input("Enter passcode", type="password", key="passcode_input")
-        
-        if password_input:
-            if password_input == settings.passcode:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect passcode. Please try again.")
-                st.stop()
-        else:
-            # Show input and wait for user to enter passcode
-            st.stop()
     
     # Initialize chat engine
     if st.session_state.chat_engine is None:

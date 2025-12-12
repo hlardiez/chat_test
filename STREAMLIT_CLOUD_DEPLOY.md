@@ -1,6 +1,6 @@
 # Deploying to Streamlit Community Cloud
 
-This guide explains how to deploy the RagMetrics Self Corrected Chatbot to Streamlit Community Cloud.
+This guide explains how to deploy the RagMetrics Self Correcting Chatbot to Streamlit Community Cloud.
 
 ## Prerequisites
 
@@ -21,7 +21,9 @@ Make sure your code is pushed to GitHub (see `GITHUB_SETUP.md` for instructions)
 5. Main file path: `web_ui.py`
 6. Python version: 3.10 or 3.11 (recommended)
 
-## Step 3: Configure Environment Variables
+**IMPORTANT**: After creating the app, **BEFORE** it finishes deploying, go to Settings → Secrets and add all environment variables. If you wait until after deployment, the app will fail to start.
+
+## Step 3: Configure Environment Variables (DO THIS IMMEDIATELY)
 
 **IMPORTANT**: Streamlit Cloud does NOT use `.env` files. You must set environment variables in the Streamlit Cloud dashboard.
 
@@ -30,6 +32,11 @@ Make sure your code is pushed to GitHub (see `GITHUB_SETUP.md` for instructions)
 Set these in the Streamlit Cloud app settings (under "⚙️ Settings" → "Secrets"):
 
 **Format**: Streamlit Cloud uses TOML format. Paste this into the secrets editor:
+
+**Important**: 
+- **Keys** (left side) do NOT need quotes: `KEY_NAME`
+- **Values** (right side) need quotes for strings: `"value"`
+- Numbers can be with or without quotes: `5` or `"5"` both work
 
 ```toml
 OPENAI_API_KEY = "your_openai_api_key_here"
@@ -42,10 +49,11 @@ RAGMETRICS_EVAL_GROUP_ID = "your_eval_group_id"
 RAGMETRICS_EVAL_TYPE = "S"
 RAGMETRICS_CONVERSATION_ID = "Conv_ID_1"
 EMBEDDING_MODEL = "text-embedding-3-small"
-RAG_TOP_K = "5"
-REG_SCORE = "3"
-PASSCODE = "Messi2022"
+RAG_TOP_K = 5
+REG_SCORE = 3
 ```
+
+**Note**: For numeric values like `RAG_TOP_K` and `REG_SCORE`, you can use `5` or `"5"` - both work fine.
 
 ### Optional Environment Variables
 
@@ -89,7 +97,6 @@ So your code will work in both environments without changes!
 1. **Never commit `.env` file** - Already excluded in `.gitignore`
 2. **Use Streamlit Secrets** - More secure than hardcoding
 3. **Rotate API keys** - Change them periodically
-4. **Use different passcodes** - Don't use default "Messi2022" in production
 
 ### Troubleshooting
 

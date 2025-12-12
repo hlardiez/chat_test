@@ -36,15 +36,45 @@ class Settings(BaseSettings):
     # Regeneration Configuration
     reg_score: int = Field(default=3, alias="REG_SCORE")
     
-    # Authentication Configuration
-    passcode: str = Field(default="Messi2022", alias="PASSCODE")
-    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        # Don't fail if .env file doesn't exist (for Streamlit Cloud)
+        env_file_required = False
 
 
-# Global settings instance
-settings = Settings()
+# Global settings instance - lazy initialization
+_settings_instance: Optional[Settings] = None
+
+
+def get_settings() -> Settings:
+    """Get or create the global settings instance (lazy initialization)."""
+    global _settings_instance
+    if _settings_instance is None:
+        try:
+            _settings_instance = Settings()
+        except Exception as e:
+            # Provide helpful error message for Streamlit Cloud
+            import sys
+            error_msg = str(e)
+            if "Field required" in error_msg or "validation error" in error_msg.lower():
+                raise ValueError(
+                    f"Missing required environment variables. "
+                    f"Please set all required variables in Streamlit Cloud Secrets. "
+                    f"Original error: {error_msg}"
+                ) from e
+            raise
+    return _settings_instance
+
+
+# For backward compatibility, create a property-like accessor
+class _SettingsProxy:
+    """Proxy class to access settings lazily."""
+    
+    def __getattr__(self, name):
+        return getattr(get_settings(), name)
+
+
+settings = _SettingsProxy()
 

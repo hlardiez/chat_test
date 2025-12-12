@@ -1,4 +1,4 @@
-# RagMetrics - Self Corrected Chatbot
+# RagMetrics - Self Correcting Chatbot
 
 A self-correcting chat engine based on OpenAI that answers questions using data retrieved from a Pinecone RAG system, evaluates responses with RagMetrics API, and automatically regenerates answers when quality thresholds are not met.
 
@@ -10,7 +10,6 @@ A self-correcting chat engine based on OpenAI that answers questions using data 
 - **Self-Correction**: Automatically regenerates answers when evaluation scores exceed thresholds
 - **CLI Interface**: Interactive command-line interface for chat
 - **Web UI**: Streamlit-based web interface with inline evaluation results
-- **Password Protection**: Secure access with configurable passcode
 
 ## Setup
 
@@ -68,8 +67,6 @@ The web interface provides a single scrollable conversation panel:
   - When regeneration occurs, displays "Criteria: Score | Answer Regenerated" in red
   - Shows original question and truncated answer when regeneration is triggered
 
-**Password Protection**: The app requires a passcode to access. Default passcode is "Messi2022" if not configured in `.env`.
-
 ## Project Structure
 
 ```
@@ -96,7 +93,6 @@ chat_test/
 - **Type**: Always `"S"` for RagMetrics submissions
 - **Top-K Results**: Configurable via `RAG_TOP_K` (default: 5)
 - **Regeneration Threshold**: Configurable via `REG_SCORE` (default: 3) - regenerates if any criteria score >= this value
-- **Password Protection**: Default passcode is "Messi2022" if `PASSCODE` is not set in `.env`
 - **Error Handling**: RagMetrics failures are logged but don't stop the chat
 
 ## Deployment to Streamlit Community Cloud
