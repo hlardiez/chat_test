@@ -3,7 +3,7 @@
 import os
 from typing import Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 
 class Settings(BaseSettings):
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # RagMetrics Configuration
     ragmetrics_api_key: str = Field(..., alias="RAGMETRICS_API_KEY")
     ragmetrics_base_url: str = Field(
-        default="https://ragmetrics-staging-docker-c9ana3hgacg3fbbt.centralus-01.azurewebsites.net",
+        default="https://api.ragmetrics.ai",
         alias="RAGMETRICS_URL"
     )
     ragmetrics_eval_group_id: str = Field(..., alias="RAGMETRICS_EVAL_GROUP_ID")
@@ -36,12 +36,18 @@ class Settings(BaseSettings):
     # Regeneration Configuration
     reg_score: int = Field(default=3, alias="REG_SCORE")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    # UI Configuration
+    topic: str = Field(default="the US Constitution", alias="TOPIC")
+    
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
         # Don't fail if .env file doesn't exist (for Streamlit Cloud)
-        env_file_required = False
+        env_file_required=False,
+        # Ignore extra environment variables that are not defined in the model
+        extra="ignore"
+    )
 
 
 # Global settings instance - lazy initialization

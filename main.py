@@ -2,7 +2,6 @@
 
 import sys
 import logging
-import time
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
 
@@ -43,7 +42,6 @@ def main():
                 
                 # Process the question
                 print("\nProcessing...", end='', flush=True)
-                start_time = time.time()
                 result = engine.process_question(question)
                 
                 # Step 1 & 2: Show bot's answer first (replace "Processing..." line)
@@ -68,8 +66,7 @@ def main():
                     
                     # Display criteria if found
                     if criteria_list:
-                        eval_time = result.get('evaluation_time_ms', 0)
-                        print(f"\nEvaluation ({eval_time}ms)")
+                        print("\nEvaluation")
                         print("-" * 60)
                         for criterion in criteria_list:
                             if isinstance(criterion, dict):
@@ -81,8 +78,7 @@ def main():
                                 print(f"{criterion}")
                     # Fallback: Check for single score and reasoning
                     elif 'score' in ragmetrics_result or 'reasoning' in ragmetrics_result:
-                        eval_time = result.get('evaluation_time_ms', 0)
-                        print(f"\nEvaluation ({eval_time}ms)")
+                        print("\nEvaluation")
                         print("-" * 60)
                         score = ragmetrics_result.get('score', 'N/A')
                         reasoning = ragmetrics_result.get('reason', ragmetrics_result.get('reasoning', ragmetrics_result.get('explanation', 'N/A')))
@@ -103,10 +99,6 @@ def main():
                     print("-" * 60)
                     print("Regenerated Answer:", regenerated_answer)
                     print("-" * 60)
-                
-                # Calculate and display turnaround time (from start until before next question)
-                turnaround_time_ms = int((time.time() - start_time) * 1000)
-                print(f"\nTurnaround time: {turnaround_time_ms}ms")
                 
             except KeyboardInterrupt:
                 print("\n\nInterrupted by user. Goodbye!")

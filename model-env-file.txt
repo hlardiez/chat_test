@@ -1,0 +1,32 @@
+# Model Environment File
+
+# RagMetrics Configuration
+RAGMETRICS_API_KEY= [ragmetrics_api_key]
+RAGMETRICS_EVAL_GROUP_ID= [ragmetrics_eval_group_id]
+RAGMETRICS_CONVERSATION_ID= [ragmetrics_conversation_id]
+RAGMETRICS_EVAL_TYPE= [ragmetrics_eval_type]
+RAGMETRICS_URL= [ragmetrics_url]
+
+# OpenAI Configuration
+OPENAI_API_KEY= [openai_api_key]
+OPEN_AI_MODEL= [open_ai_model]
+
+# Pinecone Configuration
+PINECONE_API_KEY= [pinecone_api_key]
+PINECONE_HOST= [pinecone_host]
+PINECONE_INDEX= [pinecone_index]
+
+# UI Configuration
+TOPIC= [topic]
+
+# Embedding Configuration
+EMBEDDING_MODEL= [embedding_model]  # example: text-embedding-3-small
+RAG_TOP_K= [rag_top_k]  # example: 5
+
+# Regenrate score
+# This is the score threshold for regenerating the answer
+REG_SCORE= [reg_score]  # example: 3
+
+
+
+

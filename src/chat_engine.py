@@ -1,7 +1,6 @@
 """Main chat engine orchestrator."""
 
 import logging
-import time
 from typing import Optional
 from src.openai_client import OpenAIClient
 from src.pinecone_rag import PineconeRAG
@@ -41,7 +40,6 @@ class ChatEngine:
                 - answer: The generated answer
                 - context: The retrieved context
                 - ragmetrics_result: Dictionary with evaluation results (score, reasoning) or None if failed
-                - evaluation_time_ms: Time taken for evaluation
         """
         logger.info(f"Processing question: {question}")
         
@@ -66,17 +64,13 @@ class ChatEngine:
         
         # Step 3: Send evaluation to RagMetrics
         ragmetrics_result = None
-        evaluation_time_ms = 0
         try:
-            start_time = time.time()
             ragmetrics_result = self.ragmetrics_client.send_evaluation(
                 question=question,
                 answer=answer,
                 context=context,
                 ground_truth=""  # Empty string as per requirements
             )
-            end_time = time.time()
-            evaluation_time_ms = int((end_time - start_time) * 1000)
         except Exception as e:
             logger.error(f"Error sending to RagMetrics: {str(e)}")
             # Log and continue - don't fail the whole process
@@ -88,8 +82,7 @@ class ChatEngine:
             "question": question,
             "answer": answer,
             "context": context,
-            "ragmetrics_result": ragmetrics_result,
-            "evaluation_time_ms": evaluation_time_ms
+            "ragmetrics_result": ragmetrics_result
         }
     
     def regenerate_answer_if_needed(self, question: str, answer: str, context: str, ragmetrics_result: Optional[dict]) -> Optional[str]:

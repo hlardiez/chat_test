@@ -10,7 +10,10 @@ This guide explains how to deploy the RagMetrics Self Correcting Chatbot to Stre
 
 ## Step 1: Push to GitHub
 
-Make sure your code is pushed to GitHub (see `GITHUB_SETUP.md` for instructions).
+Make sure your code is pushed to GitHub. If you haven't set up the repository yet:
+1. Create a new repository on GitHub named `chat_test`
+2. Add the remote: `git remote add origin https://github.com/YOUR_USERNAME/chat_test.git`
+3. Push your code: `git push -u origin main`
 
 ## Step 2: Deploy on Streamlit Cloud
 
@@ -44,13 +47,14 @@ OPEN_AI_MODEL = "gpt-3.5-turbo"
 PINECONE_API_KEY = "your_pinecone_api_key_here"
 PINECONE_INDEX = "your_index_name"
 RAGMETRICS_API_KEY = "your_ragmetrics_api_key_here"
-RAGMETRICS_URL = "https://ragmetrics-staging-docker-c9ana3hgacg3fbbt.centralus-01.azurewebsites.net"
+RAGMETRICS_URL = "https://api.ragmetrics.ai"
 RAGMETRICS_EVAL_GROUP_ID = "your_eval_group_id"
 RAGMETRICS_EVAL_TYPE = "S"
-RAGMETRICS_CONVERSATION_ID = "Conv_ID_1"
-EMBEDDING_MODEL = "text-embedding-3-small"
-RAG_TOP_K = 5
-REG_SCORE = 3
+RAGMETRICS_CONVERSATION_ID = "your"conv id
+EMBEDDING_MODEL = "your embeding model" 
+RAG_TOP_K = [your top k - note we used 5]
+REG_SCORE = [your regenration model - note: we used 3]
+TOPIC = "chat bot topic"
 ```
 
 **Note**: For numeric values like `RAG_TOP_K` and `REG_SCORE`, you can use `5` or `"5"` - both work fine.
@@ -60,7 +64,10 @@ REG_SCORE = 3
 ```toml
 PINECONE_HOST = "your_pinecone_host"  # if needed
 PINECONE_NAMESPACE = "your_namespace"  # if needed, otherwise auto-detected
+TOPIC = "your topic here"  # Optional, defaults to "the US Constitution"
 ```
+
+**Note**: The `TOPIC` variable controls the subheader text displayed in the web UI (e.g., "Ask questions about {topic}").
 
 ## Step 4: Setting Secrets in Streamlit Cloud
 

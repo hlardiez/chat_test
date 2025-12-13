@@ -2,7 +2,6 @@
 
 import streamlit as st
 import logging
-import time
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
 from config.settings import Settings, get_settings
@@ -164,7 +163,8 @@ def main():
                 st.stop()
     
     # Single column layout for conversation
-    st.subheader("Ask questions about the US Constitution.")
+    topic = settings.topic
+    st.subheader(f"Ask questions about {topic}")
     
     # Display all conversation history (scrolling up)
     for entry in st.session_state.conversation_history:
@@ -241,7 +241,6 @@ def main():
             st.session_state.processing_started = True
             
             # Process question
-            start_time = time.time()
             result = st.session_state.chat_engine.process_question(st.session_state.current_question)
             
             # Get evaluation result
@@ -258,17 +257,13 @@ def main():
             # Determine if there's an error
             has_error_flag = has_error(ragmetrics_result, settings.reg_score)
             
-            # Calculate turnaround time
-            turnaround_time_ms = int((time.time() - start_time) * 1000)
-            
             # Store in conversation history
             conversation_entry = {
                 'question': st.session_state.current_question,
                 'answer': result['answer'],
                 'regenerated_answer': regenerated_answer,
                 'has_error': has_error_flag,
-                'ragmetrics_result': ragmetrics_result,
-                'turnaround_time_ms': turnaround_time_ms
+                'ragmetrics_result': ragmetrics_result
             }
             st.session_state.conversation_history.append(conversation_entry)
             

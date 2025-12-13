@@ -23,11 +23,12 @@ pip install -r requirements.txt
 
 Copy the `.env` file and update it with your credentials:
 
-- **OpenAI**: `OPENAI_API_KEY`, `OPENAI_MODEL`
-- **Pinecone**: `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`
-- **RagMetrics**: `RAGMETRICS_API_KEY`, `EVAL_GROUP_ID`
+- **OpenAI**: `OPENAI_API_KEY`, `OPEN_AI_MODEL`
+- **Pinecone**: `PINECONE_API_KEY`, `PINECONE_INDEX`
+- **RagMetrics**: `RAGMETRICS_API_KEY`, `RAGMETRICS_EVAL_GROUP_ID`, `RAGMETRICS_CONVERSATION_ID`
+- **UI Configuration**: `TOPIC` (optional, defaults to "the US Constitution")
 
-See `.env` file for all required variables.
+See `.env` file for all required variables. See `STREAMLIT_CLOUD_DEPLOY.md` for a complete list of environment variables.
 
 ### 3. Run the Chat Engine
 
@@ -86,13 +87,24 @@ chat_test/
 └── README.md               # This file
 ```
 
-## Notes
+## Configuration
+
+### Environment Variables
+
+All configuration is managed through environment variables (loaded via `pydantic-settings`):
+
+- **OpenAI**: `OPENAI_API_KEY` (required), `OPEN_AI_MODEL` (default: "gpt-3.5-turbo")
+- **Pinecone**: `PINECONE_API_KEY` (required), `PINECONE_INDEX` (required), `PINECONE_NAMESPACE` (optional, auto-detected if not set)
+- **RagMetrics**: `RAGMETRICS_API_KEY` (required), `RAGMETRICS_EVAL_GROUP_ID` (required), `RAGMETRICS_CONVERSATION_ID` (required), `RAGMETRICS_URL` (default: "https://api.ragmetrics.ai")
+- **RAG Configuration**: `RAG_TOP_K` (default: 5), `EMBEDDING_MODEL` (default: "text-embedding-3-small")
+- **Regeneration**: `REG_SCORE` (default: 3) - regenerates if any criteria score >= this value
+- **UI Configuration**: `TOPIC` (default: "the US Constitution") - defines the subject/topic displayed in the web UI
+
+### Notes
 
 - **Ground Truth**: Currently set to empty string `""` for evaluation
-- **Evaluation Group ID**: Constant value from `.env`
-- **Type**: Always `"S"` for RagMetrics submissions
-- **Top-K Results**: Configurable via `RAG_TOP_K` (default: 5)
-- **Regeneration Threshold**: Configurable via `REG_SCORE` (default: 3) - regenerates if any criteria score >= this value
+- **Evaluation Type**: Always `"S"` for RagMetrics submissions
+- **Topic/Subject**: Configurable via `TOPIC` environment variable in `config/settings.py`. Default value is "the US Constitution". This controls the subheader text in the web UI.
 - **Error Handling**: RagMetrics failures are logged but don't stop the chat
 
 ## Deployment to Streamlit Community Cloud
