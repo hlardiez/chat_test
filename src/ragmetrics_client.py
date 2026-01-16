@@ -11,8 +11,13 @@ logger = logging.getLogger(__name__)
 class RagMetricsClient:
     """Client for sending evaluation data to RagMetrics API."""
     
-    def __init__(self):
-        """Initialize RagMetrics client with API key and base URL."""
+    def __init__(self, eval_group_id: str = None):
+        """
+        Initialize RagMetrics client with API key and base URL.
+        
+        Args:
+            eval_group_id: Optional eval group ID override (defaults to settings.ragmetrics_eval_group_id)
+        """
         # Handle case where URL includes the full path
         url = settings.ragmetrics_base_url.rstrip('/')
         # Remove /v2/single-evaluation if present
@@ -21,7 +26,7 @@ class RagMetricsClient:
         else:
             self.base_url = url
         self.api_key = settings.ragmetrics_api_key
-        self.eval_group_id = settings.ragmetrics_eval_group_id
+        self.eval_group_id = eval_group_id or settings.ragmetrics_eval_group_id
         self.eval_type = settings.ragmetrics_type
         self.conversation_id = settings.ragmetrics_conversation_id
         self.endpoint = f"{self.base_url}/v2/single-evaluation/"

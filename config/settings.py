@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     pinecone_index_name: str = Field(..., alias="PINECONE_INDEX")
     pinecone_namespace: Optional[str] = Field(default=None, alias="PINECONE_NAMESPACE")
     
+    # Pinecone Retail Index Configuration
+    pinecone_retail_index: str = Field(..., alias="PINECONE_RETAIL_INDEX")
+    pinecone_retail_host: Optional[str] = Field(default=None, alias="PINECONE_RETAIL_HOST")
+    
     # RagMetrics Configuration
     ragmetrics_api_key: str = Field(..., alias="RAGMETRICS_API_KEY")
     ragmetrics_base_url: str = Field(
@@ -26,6 +30,7 @@ class Settings(BaseSettings):
         alias="RAGMETRICS_URL"
     )
     ragmetrics_eval_group_id: str = Field(..., alias="RAGMETRICS_EVAL_GROUP_ID")
+    ragmetrics_retail_eval_group_id: str = Field(..., alias="RAGMETRICS_RETAIL_EVAL_GROUP_ID")
     ragmetrics_type: str = Field(default="S", alias="RAGMETRICS_EVAL_TYPE")
     ragmetrics_conversation_id: str = Field(..., alias="RAGMETRICS_CONVERSATION_ID")
     

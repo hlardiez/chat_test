@@ -11,6 +11,8 @@ setup_logging(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Initialize session state
+if 'bot_type' not in st.session_state:
+    st.session_state.bot_type = None
 if 'chat_engine' not in st.session_state:
     st.session_state.chat_engine = None
 if 'conversation_history' not in st.session_state:
@@ -143,8 +145,6 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    st.title("RagMetrics - Self Correcting Chatbot")
-    
     # Get settings instance (lazy initialization - only when needed)
     try:
         settings = get_settings()
@@ -153,17 +153,58 @@ def main():
         st.error("Please ensure all required environment variables are set in Streamlit Cloud Secrets.")
         st.stop()
     
-    # Initialize chat engine
+    # Bot selection - show if not selected yet
+    if st.session_state.bot_type is None:
+        st.title("RagMetrics - Self Correcting Chatbot")
+        st.subheader("Select a bot to get started")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🇺🇸 Constitution Bot", use_container_width=True, type="primary"):
+                st.session_state.bot_type = "constitution"
+                st.session_state.chat_engine = None  # Reset chat engine
+                st.session_state.conversation_history = []  # Clear history
+                st.rerun()
+        
+        with col2:
+            if st.button("🛒 Retail Bot", use_container_width=True, type="primary"):
+                st.session_state.bot_type = "retail"
+                st.session_state.chat_engine = None  # Reset chat engine
+                st.session_state.conversation_history = []  # Clear history
+                st.rerun()
+        
+        st.stop()
+    
+    # Set title and topic based on bot type
+    if st.session_state.bot_type == "retail":
+        page_title = "Customer Service"
+        topic = "customer service"
+    else:
+        page_title = "RagMetrics - Self Correcting Chatbot"
+        topic = settings.topic
+    
+    # Title with bot switcher
+    col_title, col_switch = st.columns([4, 1])
+    with col_title:
+        st.title(page_title)
+    with col_switch:
+        if st.button("🔄 Switch Bot", use_container_width=True):
+            st.session_state.bot_type = None
+            st.session_state.chat_engine = None
+            st.session_state.conversation_history = []
+            st.rerun()
+    
+    # Initialize chat engine with selected bot type
     if st.session_state.chat_engine is None:
         with st.spinner("Initializing chat engine..."):
             try:
-                st.session_state.chat_engine = ChatEngine()
+                st.session_state.chat_engine = ChatEngine(bot_type=st.session_state.bot_type)
             except Exception as e:
                 st.error(f"Error initializing chat engine: {str(e)}")
                 st.stop()
     
     # Single column layout for conversation
-    topic = settings.topic
     st.subheader(f"Ask questions about {topic}")
     
     # Display all conversation history (scrolling up)

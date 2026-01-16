@@ -11,16 +11,24 @@ logger = logging.getLogger(__name__)
 class PineconeRAG:
     """Pinecone RAG client for vector similarity search."""
     
-    def __init__(self):
-        """Initialize Pinecone client with API key from settings."""
+    def __init__(self, index_name: str = None, host: str = None):
+        """
+        Initialize Pinecone client with API key from settings.
+        
+        Args:
+            index_name: Optional index name override (defaults to settings.pinecone_index_name)
+            host: Optional host override (defaults to settings.pinecone_host)
+        """
         try:
             logger.info("Initializing Pinecone client...")
             logger.info(f"API Key: {settings.pinecone_api_key[:10]}...{settings.pinecone_api_key[-5:] if len(settings.pinecone_api_key) > 15 else '***'}")
-            logger.info(f"Index Name: {settings.pinecone_index_name}")
+            
+            # Use provided index_name or default from settings
+            self.index_name = index_name or settings.pinecone_index_name
+            logger.info(f"Index Name: {self.index_name}")
             
             # Initialize Pinecone client
             self.pc = Pinecone(api_key=settings.pinecone_api_key)
-            self.index_name = settings.pinecone_index_name
             
             # Get the index (works with both Serverless and Pod-based indexes)
             logger.info(f"Connecting to index '{self.index_name}'...")

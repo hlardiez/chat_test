@@ -1,6 +1,7 @@
 """CLI entry point for the Chat Test Project."""
 
 import sys
+import argparse
 import logging
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
@@ -12,10 +13,21 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Main CLI entry point."""
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Chat Test Project - RAG-based Chat Engine')
+    # Support both -t and -T flags (both set the same destination)
+    parser.add_argument('-t', dest='show_eval_time', action='store_true',
+                        help='Show evaluation time with evaluation results')
+    parser.add_argument('-T', dest='show_eval_time', action='store_true',
+                        help='Show evaluation time with evaluation results (same as -t)')
+    args = parser.parse_args()
+    
     print("=" * 60)
     print("Chat Test Project - RAG-based Chat Engine")
     print("=" * 60)
     print("Type 'quit' or 'exit' to end the session")
+    if args.show_eval_time:
+        print("Evaluation time display: ENABLED")
     print("=" * 60)
     print()
     
@@ -51,6 +63,7 @@ def main():
                 
                 # Step 3 & 4: Show evaluation results
                 ragmetrics_result = result.get('ragmetrics_result')
+                evaluation_time = result.get('evaluation_time')
                 if ragmetrics_result:
                     criteria_list = None
                     
@@ -76,6 +89,9 @@ def main():
                                 print(f"{name} - {score}: {reason}")
                             else:
                                 print(f"{criterion}")
+                        # Show evaluation time if flag is set
+                        if args.show_eval_time and evaluation_time is not None:
+                            print(f"\nEvaluation time: {evaluation_time:.3f}s")
                     # Fallback: Check for single score and reasoning
                     elif 'score' in ragmetrics_result or 'reasoning' in ragmetrics_result:
                         print("\nEvaluation")
@@ -84,6 +100,9 @@ def main():
                         reasoning = ragmetrics_result.get('reason', ragmetrics_result.get('reasoning', ragmetrics_result.get('explanation', 'N/A')))
                         criterion_name = ragmetrics_result.get('criteria', ragmetrics_result.get('criterion_name', ragmetrics_result.get('name', 'Overall')))
                         print(f"{criterion_name} - {score}: {reasoning}")
+                        # Show evaluation time if flag is set
+                        if args.show_eval_time and evaluation_time is not None:
+                            print(f"\nEvaluation time: {evaluation_time:.3f}s")
                 
                 # Step 5: Check if regeneration is needed
                 regenerated_answer = engine.regenerate_answer_if_needed(

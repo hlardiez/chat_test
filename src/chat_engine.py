@@ -1,6 +1,7 @@
 """Main chat engine orchestrator."""
 
 import logging
+import time
 from typing import Optional
 from src.openai_client import OpenAIClient
 from src.pinecone_rag import PineconeRAG
@@ -13,12 +14,33 @@ logger = logging.getLogger(__name__)
 class ChatEngine:
     """Main chat engine that orchestrates RAG, OpenAI, and RagMetrics."""
     
-    def __init__(self):
-        """Initialize the chat engine with all required clients."""
+    def __init__(self, bot_type: str = "constitution"):
+        """
+        Initialize the chat engine with all required clients.
+        
+        Args:
+            bot_type: Type of bot - "constitution" or "retail" (defaults to "constitution")
+        """
         try:
+            self.bot_type = bot_type
             self.openai_client = OpenAIClient()
-            self.pinecone_rag = PineconeRAG()
-            self.ragmetrics_client = RagMetricsClient()
+            
+            # Set up Pinecone and RagMetrics based on bot type
+            if bot_type == "retail":
+                # Use retail index and host
+                index_name = settings.pinecone_retail_index
+                host = settings.pinecone_retail_host
+                eval_group_id = settings.ragmetrics_retail_eval_group_id
+                logger.info(f"Initializing retail bot with index: {index_name}")
+            else:
+                # Use constitution index and host
+                index_name = settings.pinecone_index_name
+                host = settings.pinecone_host
+                eval_group_id = settings.ragmetrics_eval_group_id
+                logger.info(f"Initializing constitution bot with index: {index_name}")
+            
+            self.pinecone_rag = PineconeRAG(index_name=index_name, host=host)
+            self.ragmetrics_client = RagMetricsClient(eval_group_id=eval_group_id)
             logger.info("Chat engine initialized successfully")
         except Exception as e:
             logger.error(f"Error initializing chat engine: {str(e)}")
@@ -55,7 +77,7 @@ class ChatEngine:
         
         # Step 2: Generate answer using OpenAI
         try:
-            answer = self.openai_client.generate_answer(question, context)
+            answer = self.openai_client.generate_answer(question, context, bot_type=self.bot_type)
             logger.info(f"Generated answer ({len(answer)} characters)")
         except Exception as e:
             logger.error(f"Error generating answer: {str(e)}")
@@ -64,13 +86,16 @@ class ChatEngine:
         
         # Step 3: Send evaluation to RagMetrics
         ragmetrics_result = None
+        evaluation_time = None
         try:
+            start_time = time.time()
             ragmetrics_result = self.ragmetrics_client.send_evaluation(
                 question=question,
                 answer=answer,
                 context=context,
                 ground_truth=""  # Empty string as per requirements
             )
+            evaluation_time = time.time() - start_time
         except Exception as e:
             logger.error(f"Error sending to RagMetrics: {str(e)}")
             # Log and continue - don't fail the whole process
@@ -82,7 +107,8 @@ class ChatEngine:
             "question": question,
             "answer": answer,
             "context": context,
-            "ragmetrics_result": ragmetrics_result
+            "ragmetrics_result": ragmetrics_result,
+            "evaluation_time": evaluation_time
         }
     
     def regenerate_answer_if_needed(self, question: str, answer: str, context: str, ragmetrics_result: Optional[dict]) -> Optional[str]:
@@ -112,7 +138,8 @@ class ChatEngine:
                 regenerated_answer = self.openai_client.regenerate_answer(
                     question=question,
                     previous_answer=answer,
-                    context=context
+                    context=context,
+                    bot_type=self.bot_type
                 )
                 return regenerated_answer
             except Exception as e:

@@ -20,7 +20,8 @@ class OpenAIClient:
     def generate_answer(
         self, 
         question: str, 
-        context: Optional[str] = None
+        context: Optional[str] = None,
+        bot_type: str = "constitution"
     ) -> str:
         """
         Generate an answer to a question using OpenAI chat completion.
@@ -28,6 +29,7 @@ class OpenAIClient:
         Args:
             question: The user's question
             context: Optional context from RAG system to include in the prompt
+            bot_type: Type of bot - "constitution" or "retail" (defaults to "constitution")
             
         Returns:
             The generated answer string
@@ -37,7 +39,8 @@ class OpenAIClient:
             context_str = context if context else ""
             system_content, user_content = get_chat_prompt(
                 question=question,
-                context=context_str
+                context=context_str,
+                bot_type=bot_type
             )
             
             # Call OpenAI API
@@ -63,7 +66,8 @@ class OpenAIClient:
         self,
         question: str,
         previous_answer: str,
-        context: Optional[str] = None
+        context: Optional[str] = None,
+        bot_type: str = "constitution"
     ) -> str:
         """
         Regenerate an answer after detecting hallucinations.
@@ -72,6 +76,7 @@ class OpenAIClient:
             question: The user's question
             previous_answer: The previous answer that had hallucinations
             context: Optional context from RAG system to include in the prompt
+            bot_type: Type of bot - "constitution" or "retail" (defaults to "constitution")
             
         Returns:
             The regenerated answer string
@@ -82,7 +87,8 @@ class OpenAIClient:
             system_content, user_content = get_regenerate_prompt(
                 question=question,
                 previous_answer=previous_answer,
-                context=context_str
+                context=context_str,
+                bot_type=bot_type
             )
             
             # Call OpenAI API
