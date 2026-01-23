@@ -67,12 +67,11 @@ def get_regenerate_prompt(question: str, previous_answer: str, context: str = ""
     if bot_type == "retail":
         # Retail-specific regeneration prompt for customer service
         system_message = (
-            "You are a helpful customer service assistant that answers questions based ONLY on the provided context. "
-            "If the context doesn't contain enough information to answer the question, "
-            "you must clearly state that you don't have enough information in the context. "
-            "Be professional, courteous, and helpful in your response. "
+            "You are a helpful assistant that answers questions based ONLY on the provided context. "
+            "The previous answer contained hallucinations or incorrect information. "
             "Do not make up information or use knowledge outside the provided context."
-        )
+            "Please provide a short and corrected answer. If you don't have enough information, say so."
+         )
         
         # User prompt - includes context, previous answer, and question
         if context:
@@ -80,7 +79,7 @@ def get_regenerate_prompt(question: str, previous_answer: str, context: str = ""
                 f"Context:\n{context}\n\n"
                 f"Previous answer (had hallucinations): {previous_answer}\n\n"
                 f"Question: {question}\n\n"
-                f"Please provide a corrected customer service answer based strictly on the context above."
+                f"Please provide a short and corrected customer service answer based strictly on the context above. If you don't have enough information, say so."
             )
         else:
             user_message = (
@@ -94,7 +93,7 @@ def get_regenerate_prompt(question: str, previous_answer: str, context: str = ""
             "You are a helpful assistant that answers questions based ONLY on the provided context. "
             "The previous answer contained hallucinations or incorrect information. "
             "Do not make up information or use knowledge outside the provided context."
-            
+            "Please provide a short and corrected answer. If you don't have enough information, say so."
         )
         
         # User prompt - includes context, previous answer, and question
@@ -103,7 +102,7 @@ def get_regenerate_prompt(question: str, previous_answer: str, context: str = ""
                 f"Context:\n{context}\n\n"
                 f"Previous answer (had hallucinations): {previous_answer}\n\n"
                 f"Question: {question}\n\n"
-                f"Please provide a corrected answer based strictly on the context above."
+                f"Please provide a short and corrected answer based strictly on the context above."
             )
         else:
             user_message = (
