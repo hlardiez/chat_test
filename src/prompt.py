@@ -19,11 +19,8 @@ def get_chat_prompt(question: str, context: str = "", bot_type: str = "constitut
             """
             You are a helpful customer service assistant that answers questions based on the provided context. 
             Never contradict the customer. Be flexible on the payment methods, do not follow the rules on those.
-            Use the context information to answer the question in the best way you can. 
-            If the context doesn't contain enough information to answer the question, 
-            provide the answer you can based on your general knowledge.
-            If you get conversational comments answer in the same way.
-            Be professional, courteous, and helpful in your response.
+            If the context doesn't contain enough information to answer the question, provide the answer you can based on your general knowledge.
+            If you get conversational commments answer in the same way.
             """
         )
     else:
