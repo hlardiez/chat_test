@@ -6,7 +6,7 @@ import requests
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
 from config.settings import Settings, get_settings
-from fast_utils import append_log_row, log_timestamp_utc
+from fast_utils import append_log_row, log_timestamp_utc, LOGS_FAST_CSV
 
 # Set logging to WARNING level
 setup_logging(level=logging.WARNING)
@@ -302,10 +302,34 @@ def main():
         page_title = "RagMetrics - Self Correcting Chatbot"
         topic = settings.topic
     
-    # Title with bot switcher
-    col_title, col_switch = st.columns([4, 1])
+    # Title with logs download and bot switcher
+    col_title, col_logs, col_switch = st.columns([4, 0.6, 0.6])
     with col_title:
         st.title(page_title)
+    with col_logs:
+        try:
+            with open(LOGS_FAST_CSV, "rb") as f:
+                logs_data = f.read()
+            st.download_button(
+                "📥 Logs",
+                data=logs_data,
+                file_name="logs_fast.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_logs",
+            )
+        except FileNotFoundError:
+            st.download_button(
+                "📥 Logs",
+                data="",
+                file_name="logs_fast.csv",
+                mime="text/csv",
+                use_container_width=True,
+                disabled=True,
+                key="download_logs",
+            )
+        except Exception:
+            st.download_button("📥 Logs", data="", file_name="logs_fast.csv", mime="text/csv", use_container_width=True, disabled=True, key="download_logs")
     with col_switch:
         if st.button("🔄 Switch Bot", use_container_width=True):
             st.session_state.bot_type = None
