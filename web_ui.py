@@ -2,6 +2,7 @@
 
 import streamlit as st
 import logging
+import requests
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
 from config.settings import Settings, get_settings
@@ -137,6 +138,25 @@ def has_error(ragmetrics_result, reg_score):
     return False
 
 
+def check_llama_server(base_url: str, timeout: int = 5) -> tuple[bool, str]:
+    """
+    Check if the Llama server is up by calling GET {base_url}/api/tags.
+    Returns (True, None) if server is up, (False, error_message) otherwise.
+    """
+    url = base_url.rstrip("/") + "/api/tags"
+    try:
+        r = requests.get(url, timeout=timeout)
+        if r.ok:
+            return True, None
+        return False, f"Server returned status {r.status_code}"
+    except requests.exceptions.ConnectionError as e:
+        return False, "Cannot connect to server. Is it running?"
+    except requests.exceptions.Timeout:
+        return False, "Connection timed out."
+    except Exception as e:
+        return False, str(e)
+
+
 def truncate_to_words(text, max_words=80):
     """Truncate text to a maximum number of words, adding '...' if truncated."""
     if not text:
@@ -236,22 +256,39 @@ def main():
             if not url or url == "http://":
                 st.error("Please enter a valid Judge API URL (e.g. http://10.10.10.10:8080)")
             else:
-                try:
-                    from fast_utils import get_criteria_from_csv
-                    from fast_chat_engine import FastChatEngine
-                    criteria_prompt = get_criteria_from_csv("criteria.csv", "Contextual_Hallucination")
-                    if not criteria_prompt:
-                        st.error("Failed to load criteria from criteria.csv (Contextual_Hallucination).")
-                    else:
-                        with st.spinner("Connecting to judge and initializing..."):
-                            st.session_state.judge_base_url = url
-                            st.session_state.chat_engine = FastChatEngine(
-                                base_url=url,
-                                criteria_prompt=criteria_prompt
-                            )
+                with st.spinner("Checking if server is running..."):
+                    server_ok, server_error = check_llama_server(url)
+                
+                if not server_ok:
+                    st.error(f"**Judge server is not available.** {server_error}")
+                    st.info("You can re-enter the URL above and try again, or go back to the main screen.")
+                    if st.button("← Back to main screen"):
+                        st.session_state.bot_type = None
+                        st.session_state.judge_base_url = None
                         st.rerun()
-                except Exception as e:
-                    st.error(f"Error initializing Fast Constitution: {str(e)}")
+                else:
+                    try:
+                        from fast_utils import get_criteria_from_csv
+                        from fast_chat_engine import FastChatEngine
+                        criteria_prompt = get_criteria_from_csv("criteria.csv", "Contextual_Hallucination")
+                        if not criteria_prompt:
+                            st.error("Failed to load criteria from criteria.csv (Contextual_Hallucination).")
+                        else:
+                            with st.spinner("Initializing chat engine..."):
+                                st.session_state.judge_base_url = url
+                                st.session_state.chat_engine = FastChatEngine(
+                                    base_url=url,
+                                    criteria_prompt=criteria_prompt
+                                )
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Error initializing Fast Constitution: {str(e)}")
+        else:
+            # Show "Back to main screen" even when not connecting, so user can go back
+            if st.button("← Back to main screen", key="fast_back_main"):
+                st.session_state.bot_type = None
+                st.session_state.judge_base_url = None
+                st.rerun()
         st.stop()
     
     # Set title and topic based on bot type
