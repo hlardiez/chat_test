@@ -2,32 +2,17 @@
 
 import sys
 import argparse
-import csv
 import logging
 import time
-import os
 from src.utils import setup_logging
 from fast_chat_engine import FastChatEngine
-from fast_utils import get_criteria_from_csv
+from fast_utils import get_criteria_from_csv, append_log_row, log_timestamp_utc, LOGS_FAST_CSV
 
 # Set logging to WARNING level to suppress INFO/DEBUG messages
 setup_logging(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-LOGS_FAST_CSV = "logs_fast.csv"
 CRITERIA_NAME = "Contextual_Hallucination"
-
-
-def append_log_row(question: str, answer: str, context: str, criteria: str, score) -> None:
-    """Append one row to logs_fast.csv. Creates file with header if it doesn't exist."""
-    file_exists = os.path.isfile(LOGS_FAST_CSV)
-    score_str = "" if score is None else str(score)
-    row = [question, answer, context, criteria, score_str]
-    with open(LOGS_FAST_CSV, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["question", "answer", "context", "criteria", "score"])
-        writer.writerow(row)
 
 
 def main():
@@ -36,9 +21,10 @@ def main():
     parser = argparse.ArgumentParser(description='Fast Chat Test Project - RAG-based Chat Engine with Completion API')
     parser.add_argument('--u', '--url', dest='base_url', required=True,
                         help='Base URL for the completion API (e.g., http://10.10.10.10:8080)')
-    parser.add_argument('--logs', dest='logs', action='store_true',
-                        help='Log each Q&A to logs_fast.csv (question, answer, context, criteria, score)')
+    parser.add_argument('-nl', '--no-logs', dest='no_logs', action='store_true',
+                        help='Do not log Q&A to logs_fast.csv (logging is on by default)')
     args = parser.parse_args()
+    logs_enabled = not args.no_logs
     
     # Get criteria from CSV
     criteria_prompt = get_criteria_from_csv('criteria.csv', 'Contextual_Hallucination')
@@ -51,8 +37,10 @@ def main():
     print("Fast Chat Test Project - RAG-based Chat Engine")
     print("=" * 60)
     print(f"Completion API: {args.base_url}")
-    if args.logs:
+    if logs_enabled:
         print(f"Logging enabled: writing to {LOGS_FAST_CSV}")
+    else:
+        print("Logging disabled (-nl)")
     print("Type 'quit' or 'exit' to end the session")
     print("=" * 60)
     print()
@@ -122,16 +110,18 @@ def main():
                 print(f"\nOverall turnaround time: {overall_time:.3f}s")
                 print("-" * 60)
                 
-                # Log to CSV if --logs is set
-                if args.logs:
+                # Log to CSV by default (use -nl to disable)
+                if logs_enabled:
                     answer_to_log = regenerated_answer if regenerated_answer else result['answer']
                     score_val = evaluation_result.get('score') if evaluation_result else None
                     append_log_row(
+                        timestamp=log_timestamp_utc(),
+                        bot_name="fast-constitution",
                         question=result['question'],
                         answer=answer_to_log,
                         context=result['context'],
                         criteria=CRITERIA_NAME,
-                        score=score_val
+                        score=score_val,
                     )
                 
             except KeyboardInterrupt:

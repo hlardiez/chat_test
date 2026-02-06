@@ -5,6 +5,7 @@ import logging
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
 from config.settings import Settings, get_settings
+from fast_utils import append_log_row, log_timestamp_utc
 
 # Set logging to WARNING level
 setup_logging(level=logging.WARNING)
@@ -396,6 +397,27 @@ def main():
                 "ragmetrics_result": ragmetrics_result,
             }
             st.session_state.conversation_history.append(conversation_entry)
+            
+            # Log to logs_fast.csv (same format as fast_main.py)
+            criteria_name, criteria_score = get_criteria_info(ragmetrics_result)
+            bot_name = (
+                "fast-constitution" if st.session_state.bot_type == "fast_constitution"
+                else "retail" if st.session_state.bot_type == "retail"
+                else "constitution"
+            )
+            answer_to_log = regenerated_answer if regenerated_answer else result["answer"]
+            try:
+                append_log_row(
+                    timestamp=log_timestamp_utc(),
+                    bot_name=bot_name,
+                    question=result["question"],
+                    answer=answer_to_log,
+                    context=result["context"],
+                    criteria=criteria_name or "",
+                    score=criteria_score,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write to logs_fast.csv: {e}")
             
             # Reset processing state
             st.session_state.is_processing = False

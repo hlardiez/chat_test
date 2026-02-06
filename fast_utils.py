@@ -1,10 +1,39 @@
-"""Utility functions for fast_main."""
+"""Utility functions for fast_main and web_ui logging."""
 
 import csv
 import logging
+import os
+from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+LOGS_FAST_CSV = "logs_fast.csv"
+
+
+def append_log_row(
+    timestamp: str,
+    bot_name: str,
+    question: str,
+    answer: str,
+    context: str,
+    criteria: str,
+    score,
+) -> None:
+    """Append one row to logs_fast.csv. Creates file with header if it doesn't exist."""
+    file_exists = os.path.isfile(LOGS_FAST_CSV)
+    score_str = "" if score is None else str(score)
+    row = [timestamp, bot_name, question, answer, context, criteria, score_str]
+    with open(LOGS_FAST_CSV, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "bot_name", "question", "answer", "context", "criteria", "score"])
+        writer.writerow(row)
+
+
+def log_timestamp_utc() -> str:
+    """Return current UTC time as ISO string for logs."""
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def get_criteria_from_csv(csv_file: str, criteria_name: str) -> Optional[str]:
