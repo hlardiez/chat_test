@@ -25,18 +25,36 @@ if 'pending_question' not in st.session_state:
     st.session_state.pending_question = None
 if 'processing_started' not in st.session_state:
     st.session_state.processing_started = False
+if 'judge_base_url' not in st.session_state:
+    st.session_state.judge_base_url = None
 
 
 def get_criteria_info(ragmetrics_result):
-    """Extract criteria name and score from RagMetrics result.
+    """Extract criteria name and score from RagMetrics or Fast evaluation result.
     
+    Handles both RagMetrics format (criteria list) and Fast format ({score: X}).
     Returns:
         Tuple of (criteria_name, score) or (None, None) if not found
     """
     if not ragmetrics_result:
         return None, None
     
-    # Get criteria list
+    # Fast evaluation format: simple {score: X}
+    if 'score' in ragmetrics_result and 'criteria' not in ragmetrics_result and 'raw_response' not in ragmetrics_result:
+        score = ragmetrics_result.get('score')
+        score_int = None
+        if isinstance(score, (int, float)):
+            score_int = int(score)
+        elif isinstance(score, str):
+            try:
+                score_int = int(float(score))
+            except (ValueError, TypeError):
+                pass
+        if score_int is not None:
+            return "Contextual_Hallucination", score_int
+        return None, None
+    
+    # Get criteria list (RagMetrics format)
     criteria_list = None
     if 'criteria' in ragmetrics_result and isinstance(ragmetrics_result['criteria'], list):
         criteria_list = ragmetrics_result['criteria']
@@ -75,7 +93,20 @@ def has_error(ragmetrics_result, reg_score):
     if not ragmetrics_result:
         return False
     
-    # Get criteria list
+    # Fast evaluation format: simple {score: X}
+    if 'score' in ragmetrics_result and 'criteria' not in ragmetrics_result and 'raw_response' not in ragmetrics_result:
+        score = ragmetrics_result.get('score')
+        score_int = None
+        if isinstance(score, (int, float)):
+            score_int = int(score)
+        elif isinstance(score, str):
+            try:
+                score_int = int(float(score))
+            except (ValueError, TypeError):
+                return False
+        return score_int is not None and score_int >= reg_score
+    
+    # Get criteria list (RagMetrics format)
     criteria_list = None
     if 'criteria' in ragmetrics_result and isinstance(ragmetrics_result['criteria'], list):
         criteria_list = ragmetrics_result['criteria']
@@ -158,28 +189,77 @@ def main():
         st.title("RagMetrics - Self Correcting Chatbot")
         st.subheader("Select a bot to get started")
         
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             if st.button("🇺🇸 Constitution Bot", use_container_width=True, type="primary"):
                 st.session_state.bot_type = "constitution"
-                st.session_state.chat_engine = None  # Reset chat engine
-                st.session_state.conversation_history = []  # Clear history
+                st.session_state.chat_engine = None
+                st.session_state.conversation_history = []
+                st.session_state.judge_base_url = None
                 st.rerun()
         
         with col2:
             if st.button("🛒 Retail Bot", use_container_width=True, type="primary"):
                 st.session_state.bot_type = "retail"
-                st.session_state.chat_engine = None  # Reset chat engine
-                st.session_state.conversation_history = []  # Clear history
+                st.session_state.chat_engine = None
+                st.session_state.conversation_history = []
+                st.session_state.judge_base_url = None
                 st.rerun()
         
+        with col3:
+            if st.button("⚡ Fast Constitution", use_container_width=True, type="primary"):
+                st.session_state.bot_type = "fast_constitution"
+                st.session_state.chat_engine = None
+                st.session_state.conversation_history = []
+                st.session_state.judge_base_url = None
+                st.rerun()
+        
+        st.stop()
+    
+    # Fast Constitution: require Judge API URL before creating engine
+    if st.session_state.bot_type == "fast_constitution" and st.session_state.chat_engine is None:
+        st.title("Fast Constitution")
+        st.subheader("Enter the Judge API address and port")
+        st.caption("Example: http://10.10.10.10:8080")
+        
+        judge_url = st.text_input(
+            "Judge API base URL",
+            value=st.session_state.judge_base_url or "http://",
+            placeholder="http://host:port",
+            key="fast_judge_url"
+        )
+        
+        if st.button("Connect and Start"):
+            url = (judge_url or "").strip()
+            if not url or url == "http://":
+                st.error("Please enter a valid Judge API URL (e.g. http://10.10.10.10:8080)")
+            else:
+                try:
+                    from fast_utils import get_criteria_from_csv
+                    from fast_chat_engine import FastChatEngine
+                    criteria_prompt = get_criteria_from_csv("criteria.csv", "Contextual_Hallucination")
+                    if not criteria_prompt:
+                        st.error("Failed to load criteria from criteria.csv (Contextual_Hallucination).")
+                    else:
+                        with st.spinner("Connecting to judge and initializing..."):
+                            st.session_state.judge_base_url = url
+                            st.session_state.chat_engine = FastChatEngine(
+                                base_url=url,
+                                criteria_prompt=criteria_prompt
+                            )
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error initializing Fast Constitution: {str(e)}")
         st.stop()
     
     # Set title and topic based on bot type
     if st.session_state.bot_type == "retail":
         page_title = "Customer Service"
         topic = "customer service"
+    elif st.session_state.bot_type == "fast_constitution":
+        page_title = "Fast Constitution"
+        topic = settings.topic
     else:
         page_title = "RagMetrics - Self Correcting Chatbot"
         topic = settings.topic
@@ -193,9 +273,10 @@ def main():
             st.session_state.bot_type = None
             st.session_state.chat_engine = None
             st.session_state.conversation_history = []
+            st.session_state.judge_base_url = None
             st.rerun()
     
-    # Initialize chat engine with selected bot type
+    # Initialize chat engine (Constitution and Retail use ChatEngine; Fast Constitution is created in URL step)
     if st.session_state.chat_engine is None:
         with st.spinner("Initializing chat engine..."):
             try:
@@ -284,27 +365,35 @@ def main():
             # Process question
             result = st.session_state.chat_engine.process_question(st.session_state.current_question)
             
-            # Get evaluation result
-            ragmetrics_result = result.get('ragmetrics_result')
-            
-            # Check if regeneration is needed
-            regenerated_answer = st.session_state.chat_engine.regenerate_answer_if_needed(
-                question=result['question'],
-                answer=result['answer'],
-                context=result['context'],
-                ragmetrics_result=ragmetrics_result
-            )
+            # Fast Constitution uses evaluation_result; others use ragmetrics_result
+            if st.session_state.bot_type == "fast_constitution":
+                evaluation_result = result.get("evaluation_result")
+                ragmetrics_result = evaluation_result  # store for display (get_criteria_info handles {score})
+                regenerated_answer = st.session_state.chat_engine.regenerate_answer_if_needed(
+                    question=result["question"],
+                    answer=result["answer"],
+                    context=result["context"],
+                    evaluation_result=evaluation_result
+                )
+            else:
+                ragmetrics_result = result.get("ragmetrics_result")
+                regenerated_answer = st.session_state.chat_engine.regenerate_answer_if_needed(
+                    question=result["question"],
+                    answer=result["answer"],
+                    context=result["context"],
+                    ragmetrics_result=ragmetrics_result
+                )
             
             # Determine if there's an error
             has_error_flag = has_error(ragmetrics_result, settings.reg_score)
             
             # Store in conversation history
             conversation_entry = {
-                'question': st.session_state.current_question,
-                'answer': result['answer'],
-                'regenerated_answer': regenerated_answer,
-                'has_error': has_error_flag,
-                'ragmetrics_result': ragmetrics_result
+                "question": st.session_state.current_question,
+                "answer": result["answer"],
+                "regenerated_answer": regenerated_answer,
+                "has_error": has_error_flag,
+                "ragmetrics_result": ragmetrics_result,
             }
             st.session_state.conversation_history.append(conversation_entry)
             

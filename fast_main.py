@@ -2,8 +2,10 @@
 
 import sys
 import argparse
+import csv
 import logging
 import time
+import os
 from src.utils import setup_logging
 from fast_chat_engine import FastChatEngine
 from fast_utils import get_criteria_from_csv
@@ -12,6 +14,21 @@ from fast_utils import get_criteria_from_csv
 setup_logging(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
+LOGS_FAST_CSV = "logs_fast.csv"
+CRITERIA_NAME = "Contextual_Hallucination"
+
+
+def append_log_row(question: str, answer: str, context: str, criteria: str, score) -> None:
+    """Append one row to logs_fast.csv. Creates file with header if it doesn't exist."""
+    file_exists = os.path.isfile(LOGS_FAST_CSV)
+    score_str = "" if score is None else str(score)
+    row = [question, answer, context, criteria, score_str]
+    with open(LOGS_FAST_CSV, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["question", "answer", "context", "criteria", "score"])
+        writer.writerow(row)
+
 
 def main():
     """Main CLI entry point."""
@@ -19,6 +36,8 @@ def main():
     parser = argparse.ArgumentParser(description='Fast Chat Test Project - RAG-based Chat Engine with Completion API')
     parser.add_argument('--u', '--url', dest='base_url', required=True,
                         help='Base URL for the completion API (e.g., http://10.10.10.10:8080)')
+    parser.add_argument('--logs', dest='logs', action='store_true',
+                        help='Log each Q&A to logs_fast.csv (question, answer, context, criteria, score)')
     args = parser.parse_args()
     
     # Get criteria from CSV
@@ -32,6 +51,8 @@ def main():
     print("Fast Chat Test Project - RAG-based Chat Engine")
     print("=" * 60)
     print(f"Completion API: {args.base_url}")
+    if args.logs:
+        print(f"Logging enabled: writing to {LOGS_FAST_CSV}")
     print("Type 'quit' or 'exit' to end the session")
     print("=" * 60)
     print()
@@ -100,6 +121,18 @@ def main():
                 overall_time = time.time() - overall_start_time
                 print(f"\nOverall turnaround time: {overall_time:.3f}s")
                 print("-" * 60)
+                
+                # Log to CSV if --logs is set
+                if args.logs:
+                    answer_to_log = regenerated_answer if regenerated_answer else result['answer']
+                    score_val = evaluation_result.get('score') if evaluation_result else None
+                    append_log_row(
+                        question=result['question'],
+                        answer=answer_to_log,
+                        context=result['context'],
+                        criteria=CRITERIA_NAME,
+                        score=score_val
+                    )
                 
             except KeyboardInterrupt:
                 print("\n\nInterrupted by user. Goodbye!")
