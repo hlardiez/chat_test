@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     pinecone_retail_index: str = Field(..., alias="PINECONE_RETAIL_INDEX")
     pinecone_retail_host: Optional[str] = Field(default=None, alias="PINECONE_RETAIL_HOST")
     
+    # Pinecone Fitness Index Configuration
+    pinecone_fitness_index: str = Field(..., alias="PINECONE_FITNESS_INDEX")
+    pinecone_fitness_host: Optional[str] = Field(default=None, alias="PINECONE_FITNESS_HOST")
+    
     # RagMetrics Configuration
     ragmetrics_api_key: str = Field(..., alias="RAGMETRICS_API_KEY")
     ragmetrics_base_url: str = Field(
@@ -31,6 +35,7 @@ class Settings(BaseSettings):
     )
     ragmetrics_eval_group_id: str = Field(..., alias="RAGMETRICS_EVAL_GROUP_ID")
     ragmetrics_retail_eval_group_id: str = Field(..., alias="RAGMETRICS_RETAIL_EVAL_GROUP_ID")
+    ragmetrics_fitness_eval_group_id: Optional[str] = Field(default=None, alias="RAGMETRICS_FITNESS_EVAL_GROUP_ID")
     ragmetrics_type: str = Field(default="S", alias="RAGMETRICS_EVAL_TYPE")
     ragmetrics_conversation_id: str = Field(..., alias="RAGMETRICS_CONVERSATION_ID")
     

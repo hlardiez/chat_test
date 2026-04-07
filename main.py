@@ -64,9 +64,14 @@ def main():
                 # Step 3 & 4: Show evaluation results
                 ragmetrics_result = result.get('ragmetrics_result')
                 evaluation_time = result.get('evaluation_time')
+                # Safe time in ms (don't crash on weird types)
+                try:
+                    time_ms = int(float(evaluation_time) * 1000) if evaluation_time is not None else None
+                except (TypeError, ValueError):
+                    time_ms = None
+
                 if ragmetrics_result:
                     criteria_list = None
-                    
                     # Check if we have criteria in the result
                     if 'criteria' in ragmetrics_result and isinstance(ragmetrics_result['criteria'], list):
                         criteria_list = ragmetrics_result['criteria']
@@ -76,8 +81,7 @@ def main():
                             criteria_list = raw['results']
                         elif 'criteria' in raw and isinstance(raw['criteria'], list):
                             criteria_list = raw['criteria']
-                    
-                    # Display criteria if found
+
                     if criteria_list:
                         print("\nEvaluation")
                         print("-" * 60)
@@ -86,23 +90,29 @@ def main():
                                 name = criterion.get('criteria', criterion.get('name', criterion.get('criterion_name', 'Unknown')))
                                 score = criterion.get('score', 'N/A')
                                 reason = criterion.get('reason', criterion.get('reasoning', criterion.get('explanation', 'N/A')))
-                                print(f"{name} - {score}: {reason}")
+                                if time_ms is not None:
+                                    print(f"{name} - {score} - {time_ms}ms: {reason}")
+                                else:
+                                    print(f"{name} - {score}: {reason}")
                             else:
                                 print(f"{criterion}")
-                        # Show evaluation time if flag is set
-                        if args.show_eval_time and evaluation_time is not None:
-                            print(f"\nEvaluation time: {evaluation_time:.3f}s")
-                    # Fallback: Check for single score and reasoning
                     elif 'score' in ragmetrics_result or 'reasoning' in ragmetrics_result:
                         print("\nEvaluation")
                         print("-" * 60)
                         score = ragmetrics_result.get('score', 'N/A')
                         reasoning = ragmetrics_result.get('reason', ragmetrics_result.get('reasoning', ragmetrics_result.get('explanation', 'N/A')))
                         criterion_name = ragmetrics_result.get('criteria', ragmetrics_result.get('criterion_name', ragmetrics_result.get('name', 'Overall')))
-                        print(f"{criterion_name} - {score}: {reasoning}")
-                        # Show evaluation time if flag is set
-                        if args.show_eval_time and evaluation_time is not None:
-                            print(f"\nEvaluation time: {evaluation_time:.3f}s")
+                        if time_ms is not None:
+                            print(f"{criterion_name} - {score} - {time_ms}ms: {reasoning}")
+                        else:
+                            print(f"{criterion_name} - {score}: {reasoning}")
+                    else:
+                        # Fallback: show something so user knows evaluation ran
+                        print("\nEvaluation")
+                        print("-" * 60)
+                        print("(Response format not recognized; check raw_response or API changes.)")
+                elif result.get('ragmetrics_result') is None and result.get('evaluation_time') is None:
+                    print("\nEvaluation: (not available)")
                 
                 # Step 5: Check if regeneration is needed
                 regenerated_answer = engine.regenerate_answer_if_needed(

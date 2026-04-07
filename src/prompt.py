@@ -8,7 +8,7 @@ def get_chat_prompt(question: str, context: str = "", bot_type: str = "constitut
     Args:
         question: The user's question
         context: The context retrieved from RAG system (can be empty)
-        bot_type: Type of bot - "constitution" or "retail" (defaults to "constitution")
+        bot_type: Type of bot - "constitution", "retail", or "fitness" (defaults to "constitution")
         
     Returns:
         Tuple of (system_message, user_message) for OpenAI chat completion
@@ -19,6 +19,16 @@ def get_chat_prompt(question: str, context: str = "", bot_type: str = "constitut
             """
             You are a helpful customer service assistant that answers questions based on the provided context. 
             Never contradict the customer. Be flexible on the payment methods, do not follow the rules on those.
+            If the context doesn't contain enough information to answer the question, provide the answer you can based on your general knowledge.
+            If you get conversational commments answer in the same way.
+            """
+        )
+    elif bot_type == "fitness":
+        # Fitness-specific chat prompt
+        system_message = (
+            """
+            You are a helpful fitness assistant that answers questions based on the provided context. 
+            Use the context information first, and keep advice practical, safe, and concise.
             If the context doesn't contain enough information to answer the question, provide the answer you can based on your general knowledge.
             If you get conversational commments answer in the same way.
             """
@@ -56,7 +66,7 @@ def get_regenerate_prompt(question: str, previous_answer: str, context: str = ""
         question: The user's question
         previous_answer: The previous answer that had hallucinations
         context: The context retrieved from RAG system (can be empty)
-        bot_type: Type of bot - "constitution" or "retail" (defaults to "constitution")
+        bot_type: Type of bot - "constitution", "retail", or "fitness" (defaults to "constitution")
         
     Returns:
         Tuple of (system_message, user_message) for OpenAI chat completion for regenerating the answer
@@ -83,6 +93,28 @@ def get_regenerate_prompt(question: str, previous_answer: str, context: str = ""
                 f"Previous answer (had hallucinations): {previous_answer}\n\n"
                 f"Question: {question}\n\n"
                 f"Please provide a short and corrected customer service answer. If you don't have enough information, say so."
+            )
+    elif bot_type == "fitness":
+        # Fitness-specific regeneration prompt
+        system_message = (
+            "You are a helpful fitness assistant that answers questions based ONLY on the provided context. "
+            "The previous answer contained hallucinations or incorrect information. "
+            "Do not make up information or use knowledge outside the provided context."
+            "Please provide a short and corrected answer. If you don't have enough information, say so."
+        )
+        
+        if context:
+            user_message = (
+                f"Context:\n{context}\n\n"
+                f"Previous answer (had hallucinations): {previous_answer}\n\n"
+                f"Question: {question}\n\n"
+                f"Please provide a short and corrected fitness answer based strictly on the context above."
+            )
+        else:
+            user_message = (
+                f"Previous answer (had hallucinations): {previous_answer}\n\n"
+                f"Question: {question}\n\n"
+                f"Please provide a short and corrected fitness answer. If you don't have enough information, say so."
             )
     else:
         # Constitution/default regeneration prompt

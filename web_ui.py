@@ -2,11 +2,9 @@
 
 import streamlit as st
 import logging
-import requests
 from src.utils import setup_logging
 from src.chat_engine import ChatEngine
 from config.settings import Settings, get_settings
-from fast_utils import append_log_row, log_timestamp_utc, LOGS_FAST_CSV
 
 # Set logging to WARNING level
 setup_logging(level=logging.WARNING)
@@ -138,25 +136,6 @@ def has_error(ragmetrics_result, reg_score):
     return False
 
 
-def check_llama_server(base_url: str, timeout: int = 5) -> tuple[bool, str]:
-    """
-    Check if the Llama server is up by calling GET {base_url}/api/tags.
-    Returns (True, None) if server is up, (False, error_message) otherwise.
-    """
-    url = base_url.rstrip("/") + "/api/tags"
-    try:
-        r = requests.get(url, timeout=timeout)
-        if r.ok:
-            return True, None
-        return False, f"Server returned status {r.status_code}"
-    except requests.exceptions.ConnectionError as e:
-        return False, "Cannot connect to server. Is it running?"
-    except requests.exceptions.Timeout:
-        return False, "Connection timed out."
-    except Exception as e:
-        return False, str(e)
-
-
 def truncate_to_words(text, max_words=80):
     """Truncate text to a maximum number of words, adding '...' if truncated."""
     if not text:
@@ -197,20 +176,12 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    # Get settings instance (lazy initialization - only when needed)
-    try:
-        settings = get_settings()
-    except Exception as e:
-        st.error(f"Error loading configuration: {str(e)}")
-        st.error("Please ensure all required environment variables are set in Streamlit Cloud Secrets.")
-        st.stop()
-    
-    # Bot selection - show if not selected yet
+    # Bot selection - show if not selected yet (no settings required for this screen)
     if st.session_state.bot_type is None:
         st.title("RagMetrics - Self Correcting Chatbot")
         st.subheader("Select a bot to get started")
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             if st.button("🇺🇸 Constitution Bot", use_container_width=True, type="primary"):
@@ -229,6 +200,14 @@ def main():
                 st.rerun()
         
         with col3:
+            if st.button("💪 Fitness Bot", use_container_width=True, type="primary"):
+                st.session_state.bot_type = "fitness"
+                st.session_state.chat_engine = None
+                st.session_state.conversation_history = []
+                st.session_state.judge_base_url = None
+                st.rerun()
+        
+        with col4:
             if st.button("⚡ Fast Constitution", use_container_width=True, type="primary"):
                 st.session_state.bot_type = "fast_constitution"
                 st.session_state.chat_engine = None
@@ -256,45 +235,39 @@ def main():
             if not url or url == "http://":
                 st.error("Please enter a valid Judge API URL (e.g. http://10.10.10.10:8080)")
             else:
-                with st.spinner("Checking if server is running..."):
-                    server_ok, server_error = check_llama_server(url)
-                
-                if not server_ok:
-                    st.error(f"**Judge server is not available.** {server_error}")
-                    st.info("You can re-enter the URL above and try again, or go back to the main screen.")
-                    if st.button("← Back to main screen"):
-                        st.session_state.bot_type = None
-                        st.session_state.judge_base_url = None
+                try:
+                    from fast_utils import get_criteria_from_csv
+                    from fast_chat_engine import FastChatEngine
+                    criteria_prompt = get_criteria_from_csv("criteria.csv", "Contextual_Hallucination")
+                    if not criteria_prompt:
+                        st.error("Failed to load criteria from criteria.csv (Contextual_Hallucination).")
+                    else:
+                        with st.spinner("Connecting to judge and initializing..."):
+                            st.session_state.judge_base_url = url
+                            st.session_state.chat_engine = FastChatEngine(
+                                base_url=url,
+                                criteria_prompt=criteria_prompt
+                            )
                         st.rerun()
-                else:
-                    try:
-                        from fast_utils import get_criteria_from_csv
-                        from fast_chat_engine import FastChatEngine
-                        criteria_prompt = get_criteria_from_csv("criteria.csv", "Contextual_Hallucination")
-                        if not criteria_prompt:
-                            st.error("Failed to load criteria from criteria.csv (Contextual_Hallucination).")
-                        else:
-                            with st.spinner("Initializing chat engine..."):
-                                st.session_state.judge_base_url = url
-                                st.session_state.chat_engine = FastChatEngine(
-                                    base_url=url,
-                                    criteria_prompt=criteria_prompt
-                                )
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Error initializing Fast Constitution: {str(e)}")
-        else:
-            # Show "Back to main screen" even when not connecting, so user can go back
-            if st.button("← Back to main screen", key="fast_back_main"):
-                st.session_state.bot_type = None
-                st.session_state.judge_base_url = None
-                st.rerun()
+                except Exception as e:
+                    st.error(f"Error initializing Fast Constitution: {str(e)}")
+        st.stop()
+
+    # Get settings instance (lazy initialization - only when needed)
+    try:
+        settings = get_settings()
+    except Exception as e:
+        st.error(f"Error loading configuration: {str(e)}")
+        st.error("Please ensure all required environment variables are set in Streamlit Cloud Secrets.")
         st.stop()
     
     # Set title and topic based on bot type
     if st.session_state.bot_type == "retail":
         page_title = "Customer Service"
         topic = "customer service"
+    elif st.session_state.bot_type == "fitness":
+        page_title = "Fitness"
+        topic = "fitness"
     elif st.session_state.bot_type == "fast_constitution":
         page_title = "Fast Constitution"
         topic = settings.topic
@@ -302,34 +275,10 @@ def main():
         page_title = "RagMetrics - Self Correcting Chatbot"
         topic = settings.topic
     
-    # Title with logs download and bot switcher
-    col_title, col_logs, col_switch = st.columns([4, 0.6, 0.6])
+    # Title with bot switcher
+    col_title, col_switch = st.columns([4, 1])
     with col_title:
         st.title(page_title)
-    with col_logs:
-        try:
-            with open(LOGS_FAST_CSV, "rb") as f:
-                logs_data = f.read()
-            st.download_button(
-                "📥 Logs",
-                data=logs_data,
-                file_name="logs_fast.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_logs",
-            )
-        except FileNotFoundError:
-            st.download_button(
-                "📥 Logs",
-                data="",
-                file_name="logs_fast.csv",
-                mime="text/csv",
-                use_container_width=True,
-                disabled=True,
-                key="download_logs",
-            )
-        except Exception:
-            st.download_button("📥 Logs", data="", file_name="logs_fast.csv", mime="text/csv", use_container_width=True, disabled=True, key="download_logs")
     with col_switch:
         if st.button("🔄 Switch Bot", use_container_width=True):
             st.session_state.bot_type = None
@@ -338,7 +287,7 @@ def main():
             st.session_state.judge_base_url = None
             st.rerun()
     
-    # Initialize chat engine (Constitution and Retail use ChatEngine; Fast Constitution is created in URL step)
+    # Initialize chat engine (Constitution, Retail, and Fitness use ChatEngine; Fast Constitution is created in URL step)
     if st.session_state.chat_engine is None:
         with st.spinner("Initializing chat engine..."):
             try:
@@ -459,27 +408,6 @@ def main():
             }
             st.session_state.conversation_history.append(conversation_entry)
             
-            # Log to logs_fast.csv (same format as fast_main.py)
-            criteria_name, criteria_score = get_criteria_info(ragmetrics_result)
-            bot_name = (
-                "fast-constitution" if st.session_state.bot_type == "fast_constitution"
-                else "retail" if st.session_state.bot_type == "retail"
-                else "constitution"
-            )
-            answer_to_log = regenerated_answer if regenerated_answer else result["answer"]
-            try:
-                append_log_row(
-                    timestamp=log_timestamp_utc(),
-                    bot_name=bot_name,
-                    question=result["question"],
-                    answer=answer_to_log,
-                    context=result["context"],
-                    criteria=criteria_name or "",
-                    score=criteria_score,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to write to logs_fast.csv: {e}")
-            
             # Reset processing state
             st.session_state.is_processing = False
             st.session_state.current_question = None
@@ -491,4 +419,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

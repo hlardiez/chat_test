@@ -19,7 +19,7 @@ class ChatEngine:
         Initialize the chat engine with all required clients.
         
         Args:
-            bot_type: Type of bot - "constitution" or "retail" (defaults to "constitution")
+            bot_type: Type of bot - "constitution", "retail", or "fitness" (defaults to "constitution")
         """
         try:
             self.bot_type = bot_type
@@ -32,6 +32,12 @@ class ChatEngine:
                 host = settings.pinecone_retail_host
                 eval_group_id = settings.ragmetrics_retail_eval_group_id
                 logger.info(f"Initializing retail bot with index: {index_name}")
+            elif bot_type == "fitness":
+                # Use fitness index and host
+                index_name = settings.pinecone_fitness_index
+                host = settings.pinecone_fitness_host
+                eval_group_id = settings.ragmetrics_fitness_eval_group_id or settings.ragmetrics_eval_group_id
+                logger.info(f"Initializing fitness bot with index: {index_name}")
             else:
                 # Use constitution index and host
                 index_name = settings.pinecone_index_name
